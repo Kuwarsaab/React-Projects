@@ -1,32 +1,100 @@
 "use client"
 
+import type React from "react"
+
 import { motion } from "framer-motion"
-import { Mail, Phone, MapPin, Send } from "lucide-react"
+import { Mail, Phone, MapPin, Send, CheckCircle, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { useState } from "react"
 
 export default function Contact() {
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    subject: "",
+    message: "",
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<{
+    type: "success" | "error" | null
+    message: string
+  }>({ type: null, message: "" })
+
   const contactInfo = [
     {
       icon: Mail,
       label: "Email",
-      value: "hello@ritik.design",
-      href: "mailto:hello@ritik.design",
+      value: "techpit077@gmail.com",
+      href: "mailto:techpit077@gmail.com",
     },
     {
       icon: Phone,
       label: "Phone",
-      value: "+1 (555) 123-4567",
-      href: "tel:+15551234567",
+      value: "+919205035536",
+      href: "tel:+919205035536",
     },
     {
       icon: MapPin,
       label: "Location",
-      value: "New York, NY",
+      value: "New DeLhi, India",
       href: "#",
     },
   ]
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setSubmitStatus({ type: null, message: "" })
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSubmitStatus({
+          type: "success",
+          message: "Thank you! Your message has been sent successfully. I'll get back to you soon!",
+        })
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          subject: "",
+          message: "",
+        })
+      } else {
+        setSubmitStatus({
+          type: "error",
+          message: data.error || "Failed to send message. Please try again.",
+        })
+      }
+    } catch (error) {
+      setSubmitStatus({
+        type: "error",
+        message: "Network error. Please check your connection and try again.",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <section id="contact" className="py-20 md:py-32 bg-[#030303] relative">
@@ -98,20 +166,28 @@ export default function Contact() {
             viewport={{ once: true }}
             className="p-8 rounded-2xl bg-white/[0.02] border border-white/[0.05]"
           >
-            <form className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-white/80 text-sm font-medium mb-2">First Name</label>
                   <Input
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
                     className="bg-white/[0.05] border-white/[0.1] text-white placeholder:text-white/40"
                     placeholder="John"
+                    required
                   />
                 </div>
                 <div>
                   <label className="block text-white/80 text-sm font-medium mb-2">Last Name</label>
                   <Input
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
                     className="bg-white/[0.05] border-white/[0.1] text-white placeholder:text-white/40"
                     placeholder="Doe"
+                    required
                   />
                 </div>
               </div>
@@ -120,31 +196,74 @@ export default function Contact() {
                 <label className="block text-white/80 text-sm font-medium mb-2">Email</label>
                 <Input
                   type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
                   className="bg-white/[0.05] border-white/[0.1] text-white placeholder:text-white/40"
                   placeholder="john@example.com"
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-white/80 text-sm font-medium mb-2">Subject</label>
                 <Input
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleInputChange}
                   className="bg-white/[0.05] border-white/[0.1] text-white placeholder:text-white/40"
                   placeholder="Project Inquiry"
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-white/80 text-sm font-medium mb-2">Message</label>
                 <Textarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleInputChange}
                   rows={5}
                   className="bg-white/[0.05] border-white/[0.1] text-white placeholder:text-white/40 resize-none"
                   placeholder="Tell me about your project..."
+                  required
                 />
               </div>
 
-              <Button className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium py-3 rounded-xl transition-all duration-300">
-                <Send className="w-4 h-4 mr-2" />
-                Send Message
+              {/* Status Message */}
+              {submitStatus.type && (
+                <div
+                  className={`flex items-center gap-2 p-3 rounded-lg ${
+                    submitStatus.type === "success"
+                      ? "bg-green-500/10 border border-green-500/20 text-green-400"
+                      : "bg-red-500/10 border border-red-500/20 text-red-400"
+                  }`}
+                >
+                  {submitStatus.type === "success" ? (
+                    <CheckCircle className="w-5 h-5" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5" />
+                  )}
+                  <span className="text-sm">{submitStatus.message}</span>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium py-3 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Sending...
+                  </div>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Send Message
+                  </>
+                )}
               </Button>
             </form>
           </motion.div>
